@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!);
     const [variants, orders] = await Promise.all([
-      sql`SELECT v.id,v.product_id,p.name AS product_name,v.color_name,v.color_hex,v.size,v.stock_quantity FROM product_variants v JOIN products p ON p.id=v.product_id ORDER BY p.name,v.color_name,CASE v.size WHEN 'M' THEN 1 WHEN 'L' THEN 2 WHEN 'XL' THEN 3 WHEN 'XXL' THEN 4 ELSE 5 END`,
+      sql`SELECT v.id,v.product_id,p.name AS product_name,v.color_name,v.color_hex,v.color_image_url,v.size,v.stock_quantity FROM product_variants v JOIN products p ON p.id=v.product_id ORDER BY p.name,v.color_name,CASE v.size WHEN 'M' THEN 1 WHEN 'L' THEN 2 WHEN 'XL' THEN 3 WHEN 'XXL' THEN 4 ELSE 5 END`,
       sql`SELECT o.id,o.order_number,o.customer_name,o.phone,o.city,o.address,o.notes,o.status,o.subtotal,o.delivery_fee,o.total,o.created_at,i.product_name,i.color_name,i.size,i.quantity FROM orders o LEFT JOIN order_items i ON i.order_id=o.id ORDER BY o.created_at DESC LIMIT 100`
     ]);
     return NextResponse.json({ variants, orders });
