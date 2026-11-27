@@ -88,7 +88,6 @@ function ProductImagesManager(){
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState("");
  const [error,setError]=useState("");
- const inputRef=useState<HTMLInputElement|null>(null);
  async function refresh(){
   setLoading(true);
   try{const r=await fetch("/api/admin/images",{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"Chargement impossible");setImages(d.images||[]);}
