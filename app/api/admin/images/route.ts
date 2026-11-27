@@ -4,18 +4,14 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 
 export const dynamic = "force-dynamic";
 
-async function getProduct(sql: ReturnType<typeof neon>) {
-  const rows = await sql`SELECT id FROM products WHERE is_active = true ORDER BY created_at DESC LIMIT 1`;
-  return rows[0] || null;
-}
-
 export async function GET() {
   const authResult = await requireAdmin();
   if (authResult.response) return authResult.response;
   try {
     const sql = neon(process.env.DATABASE_URL!);
-    const product = await getProduct(sql);
-    if (!product) return NextResponse.json({ images: [] });
+    const products = await sql`SELECT id FROM products WHERE is_active = true ORDER BY created_at DESC LIMIT 1`;
+    if (!products.length) return NextResponse.json({ images: [] });
+    const product = products[0];
     const images = await sql`SELECT id, image_url, alt_text, sort_order FROM product_images WHERE product_id = ${product.id} ORDER BY sort_order, created_at`;
     return NextResponse.json({ images });
   } catch {
@@ -35,8 +31,9 @@ export async function POST(request: NextRequest) {
     }
     if (imageUrl.length > 1_500_000) return NextResponse.json({ error: "Image trop volumineuse après compression. Choisissez une autre photo." }, { status: 413 });
     const sql = neon(process.env.DATABASE_URL!);
-    const product = await getProduct(sql);
-    if (!product) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+    const products = await sql`SELECT id FROM products WHERE is_active = true ORDER BY created_at DESC LIMIT 1`;
+    if (!products.length) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+    const product = products[0];
     const count = await sql`SELECT count(*)::int AS total FROM product_images WHERE product_id = ${product.id}`;
     if (Number(count[0].total) >= 8) return NextResponse.json({ error: "Maximum 8 photos par produit." }, { status: 409 });
     const order = await sql`SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM product_images WHERE product_id = ${product.id}`;
