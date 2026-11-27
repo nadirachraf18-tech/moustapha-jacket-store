@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth/client";
 
 type Variant = { id:string; color_name:string; size:string; stock_quantity:number };
 type Order = { id:string; order_number:number; customer_name:string; phone:string; city:string; address:string; status:string; total:number; created_at:string; color_name:string; size:string; quantity:number };
@@ -16,6 +18,7 @@ export default function AdminPage() {
   const [search,setSearch]=useState("");
   const [statusFilter,setStatusFilter]=useState("all");
   const [activeTab,setActiveTab]=useState("overview");
+  const router=useRouter();
   async function load(){
     setLoading(true); setError("");
     try { const r=await fetch("/api/admin",{cache:"no-store"}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Accès refusé"); setVariants(d.variants||[]); setOrders(d.orders||[]); }
@@ -36,6 +39,9 @@ export default function AdminPage() {
   const totalStock=variants.reduce((n,v)=>n+v.stock_quantity,0);
   const pending=orders.filter(o=>["pending","confirmed","preparing"].includes(o.status)).length;
   const lowStock=variants.filter(v=>v.stock_quantity>0&&v.stock_quantity<=3).length;
+  const outOfStock=variants.filter(v=>v.stock_quantity===0).length;
+  const revenue=orders.filter(o=>o.status!=="cancelled").reduce((sum,o)=>sum+Number(o.total||0),0);
+  async function logout(){await authClient.signOut();router.push("/admin/login");router.refresh();}
   const filteredOrders=useMemo(()=>orders.filter(o=>(statusFilter==="all"||o.status===statusFilter)&&[o.customer_name,o.phone,o.city,String(o.order_number)].join(" ").toLowerCase().includes(search.toLowerCase())),[orders,statusFilter,search]);
   const grouped=useMemo(()=>Object.entries(variants.reduce((acc,v)=>{(acc[v.color_name]??=[]).push(v);return acc;},{} as Record<string,Variant[]>)),[variants]);
   return <main className="admin-shell admin-v2">
@@ -45,10 +51,12 @@ export default function AdminPage() {
       <a className={activeTab==="overview"?"side-link active":"side-link"} href="#overview" onClick={()=>setActiveTab("overview")}><i>▦</i> Vue générale</a>
       <a className={activeTab==="products"?"side-link active":"side-link"} href="#products" onClick={()=>setActiveTab("products")}><i>◇</i> Produits & stock</a>
       <a className={activeTab==="orders"?"side-link active":"side-link"} href="#orders" onClick={()=>setActiveTab("orders")}><i>▤</i> Commandes <b className="nav-count">{pending}</b></a>
+      <a className={activeTab==="photos"?"side-link active":"side-link"} href="#photos" onClick={()=>setActiveTab("photos")}><i>▧</i> Photos produit</a>
+      <button className="side-logout" onClick={logout}>↪ Déconnexion</button>
       <div className="sidebar-bottom"><span className="online-dot"/> Boutique connectée<br/><small>Administration sécurisée</small></div>
     </aside>
     <section className="admin-main" id="overview">
-      <header className="admin-top admin-top-v2"><div><span className="admin-kicker">TABLEAU DE BORD / MOUSTAPHA SHOP</span><h1>Bonjour, bienvenue 👋</h1><p>Voici un aperçu de votre boutique aujourd'hui.</p></div><div className="top-actions"><button className="refresh-button" onClick={load} disabled={loading}>↻ Actualiser</button><a className="store-link" href="/" target="_blank">Voir la boutique ↗</a></div></header>
+      <header className="admin-top admin-top-v2"><div><span className="admin-kicker">TABLEAU DE BORD / MOUSTAPHA SHOP</span><h1>Bonjour, bienvenue 👋</h1><p>Voici un aperçu de votre boutique aujourd'hui.</p></div><div className="top-actions"><span className="admin-user-chip">● Admin connecté</span><button className="refresh-button" onClick={load} disabled={loading}>↻ Actualiser</button><a className="store-link" href="/" target="_blank">Voir la boutique ↗</a></div></header>
       {error&&<p className="form-error admin-alert">{error}</p>}
       <div className="welcome-strip"><div><span className="strip-eyebrow">PRODUIT EN VEDETTE</span><strong>Veste simili cuir</strong><small>Collection femme · 5 couleurs · 4 tailles</small></div><div className="strip-price"><strong>150 DH</strong><del>250 DH</del><span>-40%</span></div></div>
       <div className="section-title"><div><span className="admin-kicker">VOTRE ACTIVITÉ</span><h2>Vue d'ensemble</h2></div><span className="live-label"><i/> Données en direct</span></div>
@@ -57,10 +65,11 @@ export default function AdminPage() {
         <article className="stat-card"><div className="stat-icon green-icon">▤</div><span>Stock disponible</span><strong>{totalStock}</strong><small>Unités en inventaire</small></article>
         <article className="stat-card"><div className="stat-icon blue-icon">♧</div><span>Commandes reçues</span><strong>{orders.length}</strong><small>Total des commandes</small></article>
         <article className="stat-card"><div className="stat-icon amber-icon">◷</div><span>À traiter</span><strong>{pending}</strong><small>Demandent votre attention</small></article>
+        <article className="stat-card"><div className="stat-icon blue-icon">↗</div><span>Chiffre des commandes</span><strong>{revenue.toLocaleString("fr-FR")} DH</strong><small>Hors commandes annulées</small></article>
       </div>
       <section className="admin-panel panel-v2" id="products">
         <div className="panel-head"><div><span className="admin-kicker">GESTION DES QUANTITÉS</span><h2>Stock par couleur et taille</h2><p>Modifiez les quantités disponibles. Les ventes confirmées mettent le stock à jour.</p></div><span className="inventory-total">{totalStock} unités</span></div>
-        {lowStock>0&&<div className="stock-warning">⚠ {lowStock} variante(s) ont un stock faible (3 unités ou moins).</div>}
+        {lowStock>0&&<div className="stock-warning">⚠ {lowStock} variante(s) ont un stock faible (3 unités ou moins) · {outOfStock} variante(s) épuisée(s).</div>}
         {loading?<p>Chargement du stock…</p>:<div className="stock-groups">{grouped.map(([color,items])=><article className="stock-color-card" key={color}><div className="stock-color-head"><span className="color-dot" style={{background:colors[color]||"#aaa"}}/><strong>{color}</strong><small>{items.reduce((n,v)=>n+v.stock_quantity,0)} en stock</small></div><div className="size-stock-grid">{items.sort((a,b)=>a.size.localeCompare(b.size)).map(v=><StockRow key={v.id} variant={v} busy={saving===v.id} onSave={n=>updateStock(v,n)}/>)}</div></article>)}</div>}
       </section>
       <ProductImagesManager />
