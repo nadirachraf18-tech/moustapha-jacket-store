@@ -16,7 +16,7 @@ export default function Home() {
   const [color, setColor] = useState(colors[0].name);
   const [size, setSize] = useState("M");
   const [quantity, setQuantity] = useState(1);
-  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "";
+  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "212612203744";
   const message = `Bonjour Moustapha Shop, je souhaite commander la veste simili cuir. Couleur: ${color}, Taille: ${size}, Quantité: ${quantity}. Prix: 150 DH.`;
   const whatsappUrl = phone ? `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;
 
