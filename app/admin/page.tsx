@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 
-type Variant = { id:string; product_name:string; color_name:string; size:string; stock_quantity:number };
+type Variant = { id:string; product_name:string; color_name:string; color_image_url?:string|null; size:string; stock_quantity:number };
 type Order = { id:string; order_number:number; customer_name:string; phone:string; city:string; address:string; status:string; total:number; created_at:string; color_name:string; size:string; quantity:number };
 const statuses = ["pending","confirmed","preparing","shipped","delivered","cancelled"];
 const labels:Record<string,string> = {pending:"En attente",confirmed:"Confirmée",preparing:"En préparation",shipped:"Expédiée",delivered:"Livrée",cancelled:"Annulée"};
@@ -71,7 +71,7 @@ export default function AdminPage() {
       <section className="admin-panel panel-v2" id="products">
         <div className="panel-head"><div><span className="admin-kicker">GESTION DES QUANTITÉS</span><h2>Stock par couleur et taille</h2><p>Modifiez les quantités disponibles. Le stock de la variante commandée diminue automatiquement à chaque commande.</p></div><span className="inventory-total">{totalStock} unités</span></div>
         {lowStock>0&&<div className="stock-warning">⚠ {lowStock} variante(s) ont un stock faible (3 unités ou moins) · {outOfStock} variante(s) épuisée(s).</div>}
-        {loading?<p>Chargement du stock…</p>:<div className="stock-groups">{grouped.map(([groupKey,items])=>{const [productName,color]=groupKey.split("|||");return <article className="stock-color-card" key={groupKey}><div className="stock-color-head"><span className="color-dot" style={{background:colors[color]||"#aaa"}}/><strong>{productName} — {color}</strong><small>{items.reduce((n,v)=>n+v.stock_quantity,0)} en stock</small></div><div className="size-stock-grid">{items.sort((a,b)=>a.size.localeCompare(b.size)).map(v=><StockRow key={v.id} variant={v} busy={saving===v.id} onSave={n=>updateStock(v,n)}/>)}</div></article>})}</div>}
+        {loading?<p>Chargement du stock…</p>:<div className="stock-groups">{grouped.map(([groupKey,items])=>{const [productName,color]=groupKey.split("|||");return <article className="stock-color-card" key={groupKey}><div className="stock-color-head">{items[0]?.color_image_url&&<img className="stock-color-thumb" src={items[0].color_image_url} alt={color}/>}<span className="color-dot" style={{background:colors[color]||"#aaa"}}/><strong>{productName} — {color}</strong><small>{items.reduce((n,v)=>n+v.stock_quantity,0)} en stock</small></div><div className="size-stock-grid">{items.sort((a,b)=>a.size.localeCompare(b.size)).map(v=><StockRow key={v.id} variant={v} busy={saving===v.id} onSave={n=>updateStock(v,n)}/>)}</div></article>})}</div>}
       </section>
       <ProductImagesManager />
       <section className="admin-panel panel-v2" id="orders">
