@@ -6,7 +6,7 @@ const colors = [
  {name:"Camel",hex:"#b98253"},{name:"Bleu marine",hex:"#17243d"},{name:"Kaki",hex:"#68704b"},{name:"Chocolat",hex:"#503326"},{name:"Noir",hex:"#171717"}
 ];
 const sizes=["M","L","XL","XXL"];
-type Variant={id:string;color_name:string;size:string;stock_quantity:number};
+type Variant={id:string;color_name:string;color_image_url?:string|null;size:string;stock_quantity:number};
 type Image={id:string;image_url:string;alt_text:string};
 export default function Home(){
  const [color,setColor]=useState("Camel"),[size,setSize]=useState("M"),[quantity,setQuantity]=useState(1);
@@ -18,7 +18,7 @@ export default function Home(){
  const available=variant?.stock_quantity||0;
  const phone=process.env.NEXT_PUBLIC_WHATSAPP_NUMBER||"212612203744";
  useEffect(()=>{fetch("/api/catalog").then(r=>r.json()).then(d=>{setVariants(d.variants||[]);setImages(d.images||[]);}).catch(()=>{}).finally(()=>setCatalogLoaded(true));},[]);
- const productImage=images[0]?.image_url;
+ const productImage=variants.find(v=>v.color_name===color&&v.color_image_url)?.color_image_url||images[0]?.image_url;
  async function order(e:React.FormEvent){
   e.preventDefault();setNotice("");
   if(!variant){setNotice("Cette variante n'est pas disponible.");return;}
