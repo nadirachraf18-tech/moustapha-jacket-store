@@ -78,8 +78,9 @@ export async function DELETE(request: NextRequest) {
     const { imageId } = await request.json();
     if (!imageId) return NextResponse.json({ error: "Photo invalide" }, { status: 400 });
     const sql = neon(process.env.DATABASE_URL!);
-    const product = await getProduct(sql);
-    if (!product) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+    const products = await sql`SELECT id FROM products WHERE is_active = true ORDER BY created_at DESC LIMIT 1`;
+    if (!products.length) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+    const product = products[0];
     const rows = await sql`DELETE FROM product_images WHERE id = ${imageId} AND product_id = ${product.id} RETURNING id`;
     if (!rows.length) return NextResponse.json({ error: "Photo introuvable" }, { status: 404 });
     return NextResponse.json({ success: true });
