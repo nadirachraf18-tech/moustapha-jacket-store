@@ -51,8 +51,9 @@ export async function PATCH(request: NextRequest) {
     const { imageId, direction } = await request.json();
     if (!imageId || !["up", "down"].includes(direction)) return NextResponse.json({ error: "Action invalide" }, { status: 400 });
     const sql = neon(process.env.DATABASE_URL!);
-    const product = await getProduct(sql);
-    if (!product) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+    const products = await sql`SELECT id FROM products WHERE is_active = true ORDER BY created_at DESC LIMIT 1`;
+    if (!products.length) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+    const product = products[0];
     const rows = await sql`SELECT id, sort_order FROM product_images WHERE id = ${imageId} AND product_id = ${product.id}`;
     if (!rows.length) return NextResponse.json({ error: "Photo introuvable" }, { status: 404 });
     const current = rows[0];
