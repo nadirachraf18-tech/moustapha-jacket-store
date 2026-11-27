@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
     }
     const product = productRows[0];
     const subtotal = Number(product.sale_price) * quantity;
-    const setting = await sql`SELECT value FROM store_settings WHERE key = 'delivery_fees'`;
-    const fees = setting[0]?.value || {};
-    const deliveryFee = Number(city.trim().toLowerCase() === "casablanca" ? fees.casablanca ?? 20 : fees.other_cities ?? 35);
+    const settingRows = await sql`SELECT key, value FROM store_settings WHERE key IN ('delivery_inside_casablanca','delivery_outside_casablanca')`;
+    const fees = Object.fromEntries(settingRows.map((row:any) => [row.key, Number(row.value)]));
+    const deliveryFee = Number(city.trim().toLowerCase() === "casablanca" ? fees.delivery_inside_casablanca ?? 20 : fees.delivery_outside_casablanca ?? 35);
     const total = subtotal + deliveryFee;
     const orderRows = await sql`
       INSERT INTO orders (customer_name, phone, city, address, notes, subtotal, delivery_fee, total)
