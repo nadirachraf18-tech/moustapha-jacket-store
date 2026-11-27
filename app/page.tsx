@@ -27,9 +27,38 @@ export default function Home(){
   try{
    const r=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({variantId:variant.id,quantity,...form})});
    const d=await r.json();if(!r.ok)throw new Error(d.error||"Commande impossible");
-   const msg=`Bonjour Moustapha Shop, ma commande #${d.order.order_number} est enregistrée. Veste simili cuir, couleur ${color}, taille ${size}, quantité ${quantity}. Total: ${d.order.total} DH. Nom: ${form.customerName}, téléphone: ${form.phone}, ville: ${form.city}, adresse: ${form.address}.`;
-   window.open(`https://wa.me/${phone.replace(/\\D/g,"")}?text=${encodeURIComponent(msg)}`,"_blank","noopener,noreferrer");
-   setNotice("Commande enregistrée ! Votre numéro est #"+d.order.order_number+". WhatsApp va s'ouvrir pour confirmation.");
+   const subtotal=quantity*150;
+   const delivery=Math.max(0,Number(d.order.total)-subtotal);
+   const msg=[
+    "🛍️ *NOUVELLE COMMANDE — MOUSTAPHA SHOP*",
+    "",
+    "Bonjour, je souhaite confirmer ma commande.",
+    "━━━━━━━━━━━━━━━━━━",
+    "📦 *DÉTAILS DE LA COMMANDE*",
+    "Référence : #"+d.order.order_number,
+    "Produit : Veste femme simili cuir",
+    "Couleur : "+color,
+    "Taille : "+size,
+    "Quantité : "+quantity,
+    "",
+    "💰 *RÉCAPITULATIF*",
+    "Sous-total : "+subtotal+" DH",
+    "Livraison : "+delivery+" DH",
+    "*TOTAL À PAYER : "+d.order.total+" DH*",
+    "",
+    "👤 *INFORMATIONS CLIENT*",
+    "Nom : "+form.customerName.trim(),
+    "Téléphone : "+form.phone.trim(),
+    "Ville : "+form.city.trim(),
+    "Adresse : "+form.address.trim(),
+    ...(form.notes.trim()?["Remarque : "+form.notes.trim()]:[]),
+    "",
+    "Merci de confirmer la disponibilité et le délai de livraison. ❤️",
+    "Moustapha Shop"
+   ].join("\\n");
+   const whatsappUrl=`https://wa.me/${phone.replace(/\\D/g,"")}?text=${encodeURIComponent(msg)}`;
+   window.open(whatsappUrl,"_blank","noopener,noreferrer");
+   setNotice("✅ Votre commande #"+d.order.order_number+" a bien été enregistrée. Le récapitulatif détaillé s’ouvre dans WhatsApp pour finaliser la confirmation.");
    setForm({customerName:"",phone:"",city:"",address:"",notes:""});
    setVariants(old=>old.map(v=>v.id===variant.id?{...v,stock_quantity:v.stock_quantity-quantity}:v));
   }catch(err){setNotice(err instanceof Error?err.message:"Une erreur est survenue.");}
