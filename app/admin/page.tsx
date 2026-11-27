@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 
-type Variant = { id:string; color_name:string; size:string; stock_quantity:number };
+type Variant = { id:string; product_name:string; color_name:string; size:string; stock_quantity:number };
 type Order = { id:string; order_number:number; customer_name:string; phone:string; city:string; address:string; status:string; total:number; created_at:string; color_name:string; size:string; quantity:number };
 const statuses = ["pending","confirmed","preparing","shipped","delivered","cancelled"];
 const labels:Record<string,string> = {pending:"En attente",confirmed:"Confirmée",preparing:"En préparation",shipped:"Expédiée",delivered:"Livrée",cancelled:"Annulée"};
@@ -43,7 +43,7 @@ export default function AdminPage() {
   const revenue=orders.filter(o=>o.status!=="cancelled").reduce((sum,o)=>sum+Number(o.total||0),0);
   async function logout(){await authClient.signOut();router.push("/admin/login");router.refresh();}
   const filteredOrders=useMemo(()=>orders.filter(o=>(statusFilter==="all"||o.status===statusFilter)&&[o.customer_name,o.phone,o.city,String(o.order_number)].join(" ").toLowerCase().includes(search.toLowerCase())),[orders,statusFilter,search]);
-  const grouped=useMemo(()=>Object.entries(variants.reduce((acc,v)=>{(acc[v.color_name]??=[]).push(v);return acc;},{} as Record<string,Variant[]>)),[variants]);
+  const grouped=useMemo(()=>Object.entries(variants.reduce((acc,v)=>{const key=v.product_name+"|||"+v.color_name;(acc[key]??=[]).push(v);return acc;},{} as Record<string,Variant[]>)),[variants]);
   return <main className="admin-shell admin-v2">
     <aside className="admin-sidebar">
       <a className="admin-brand" href="/">MOUSTAPHA<span>SHOP</span></a>
@@ -69,9 +69,9 @@ export default function AdminPage() {
         <article className="stat-card"><div className="stat-icon blue-icon">↗</div><span>Chiffre des commandes</span><strong>{revenue.toLocaleString("fr-FR")} DH</strong><small>Hors commandes annulées</small></article>
       </div>
       <section className="admin-panel panel-v2" id="products">
-        <div className="panel-head"><div><span className="admin-kicker">GESTION DES QUANTITÉS</span><h2>Stock par couleur et taille</h2><p>Modifiez les quantités disponibles. Les ventes confirmées mettent le stock à jour.</p></div><span className="inventory-total">{totalStock} unités</span></div>
+        <div className="panel-head"><div><span className="admin-kicker">GESTION DES QUANTITÉS</span><h2>Stock par couleur et taille</h2><p>Modifiez les quantités disponibles. Le stock de la variante commandée diminue automatiquement à chaque commande.</p></div><span className="inventory-total">{totalStock} unités</span></div>
         {lowStock>0&&<div className="stock-warning">⚠ {lowStock} variante(s) ont un stock faible (3 unités ou moins) · {outOfStock} variante(s) épuisée(s).</div>}
-        {loading?<p>Chargement du stock…</p>:<div className="stock-groups">{grouped.map(([color,items])=><article className="stock-color-card" key={color}><div className="stock-color-head"><span className="color-dot" style={{background:colors[color]||"#aaa"}}/><strong>{color}</strong><small>{items.reduce((n,v)=>n+v.stock_quantity,0)} en stock</small></div><div className="size-stock-grid">{items.sort((a,b)=>a.size.localeCompare(b.size)).map(v=><StockRow key={v.id} variant={v} busy={saving===v.id} onSave={n=>updateStock(v,n)}/>)}</div></article>)}</div>}
+        {loading?<p>Chargement du stock…</p>:<div className="stock-groups">{grouped.map(([groupKey,items])=>{const [productName,color]=groupKey.split("|||");return <article className="stock-color-card" key={groupKey}><div className="stock-color-head"><span className="color-dot" style={{background:colors[color]||"#aaa"}}/><strong>{productName} — {color}</strong><small>{items.reduce((n,v)=>n+v.stock_quantity,0)} en stock</small></div><div className="size-stock-grid">{items.sort((a,b)=>a.size.localeCompare(b.size)).map(v=><StockRow key={v.id} variant={v} busy={saving===v.id} onSave={n=>updateStock(v,n)}/>)}</div></article>)}</div>}
       </section>
       <ProductImagesManager />
       <section className="admin-panel panel-v2" id="orders">
