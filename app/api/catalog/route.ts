@@ -9,7 +9,7 @@ export async function GET() {
     if (!products.length) return NextResponse.json({ product: null, variants: [], images: [] });
     const product = products[0];
     const [variants, images] = await Promise.all([
-      sql`SELECT id, color_name, color_hex, size, stock_quantity FROM product_variants WHERE product_id = ${product.id} ORDER BY color_name, size`,
+      sql`SELECT id, color_name, color_hex, color_image_url, size, stock_quantity FROM product_variants WHERE product_id = ${product.id} ORDER BY color_name, size`,
       sql`SELECT id, image_url, alt_text, sort_order FROM product_images WHERE product_id = ${product.id} ORDER BY sort_order`
     ]);
     return NextResponse.json({ product, variants, images });
