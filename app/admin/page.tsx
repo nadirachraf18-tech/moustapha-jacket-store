@@ -1,11 +1,10 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { signOut } from "./signout";
 
 export const dynamic = "force-dynamic";
 export default async function AdminPage() {
-  const session = await auth.getSession();
+  const { data: session } = await auth.getSession();
   if (!session) redirect("/admin/login");
   return <main className="admin-shell">
     <aside className="admin-sidebar"><a className="admin-brand" href="/">MOUSTAPHA<span>SHOP</span></a><p className="side-label">MENU PRINCIPAL</p><a className="side-link active" href="/admin">▦　Vue générale</a><a className="side-link" href="/admin#products">◇　Produits & stock</a><a className="side-link" href="/admin#orders">▤　Commandes</a><a className="side-link" href="/admin#settings">⚙　Paramètres</a><div className="sidebar-bottom">Espace administrateur<br/>Accès privé</div></aside>
