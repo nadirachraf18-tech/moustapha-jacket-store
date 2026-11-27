@@ -52,6 +52,7 @@ export default function AdminPage() {
       <a className={activeTab==="products"?"side-link active":"side-link"} href="#products" onClick={()=>setActiveTab("products")}><i>◇</i> Produits & stock</a>
       <a className={activeTab==="orders"?"side-link active":"side-link"} href="#orders" onClick={()=>setActiveTab("orders")}><i>▤</i> Commandes <b className="nav-count">{pending}</b></a>
       <a className={activeTab==="photos"?"side-link active":"side-link"} href="#photos" onClick={()=>setActiveTab("photos")}><i>▧</i> Photos produit</a>
+      <a className="side-link" href="/admin/manage"><i>⚙</i> Gestion complète</a>
       <button className="side-logout" onClick={logout}>↪ Déconnexion</button>
       <div className="sidebar-bottom"><span className="online-dot"/> Boutique connectée<br/><small>Administration sécurisée</small></div>
     </aside>
