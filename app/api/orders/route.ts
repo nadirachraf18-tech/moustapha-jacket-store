@@ -10,36 +10,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Informations de commande invalides" }, { status: 400 });
     }
     const sql = neon(process.env.DATABASE_URL!);
-    const rows = await sql`
-      UPDATE product_variants SET stock_quantity = stock_quantity - ${quantity}, updated_at = now()
-      WHERE id = ${variantId} AND stock_quantity >= ${quantity}
-      RETURNING id, color_name, size
-    `;
-    if (!rows.length) return NextResponse.json({ error: "Stock insuffisant pour cette variante" }, { status: 409 });
-    const variant = rows[0];
-    const productRows = await sql`SELECT name, sale_price FROM products WHERE is_active = true ORDER BY created_at DESC LIMIT 1`;
-    if (!productRows.length) {
-      await sql`UPDATE product_variants SET stock_quantity = stock_quantity + ${quantity} WHERE id = ${variantId}`;
-      return NextResponse.json({ error: "Produit indisponible" }, { status: 404 });
-    }
-    const product = productRows[0];
-    const subtotal = Number(product.sale_price) * quantity;
-    const settingRows = await sql`SELECT key, value FROM store_settings WHERE key IN ('delivery_inside_casablanca','delivery_outside_casablanca')`;
-    const fees = Object.fromEntries(settingRows.map((row:any) => [row.key, Number(row.value)]));
-    const deliveryFee = Number(city.trim().toLowerCase() === "casablanca" ? fees.delivery_inside_casablanca ?? 20 : fees.delivery_outside_casablanca ?? 35);
-    const total = subtotal + deliveryFee;
-    const orderRows = await sql`
-      INSERT INTO orders (customer_name, phone, city, address, notes, subtotal, delivery_fee, total)
-      VALUES (${customerName.trim()}, ${phone.trim()}, ${city.trim()}, ${address.trim()}, ${String(notes || "").trim()}, ${subtotal}, ${deliveryFee}, ${total})
-      RETURNING id, order_number, total
-    `;
-    const order = orderRows[0];
-    await sql`
-      INSERT INTO order_items (order_id, variant_id, product_name, color_name, size, unit_price, quantity, line_total)
-      VALUES (${order.id}, ${variant.id}, ${product.name}, ${variant.color_name}, ${variant.size}, ${product.sale_price}, ${quantity}, ${subtotal})
-    `;
-    return NextResponse.json({ success: true, order });
-  } catch {
+    const rows = await sql\`
+      SELECT public.place_store_order(
+        \${variantId}::uuid, \${quantity}::integer, \${customerName.trim()}, \${phone.trim()},
+        \${city.trim()}, \${address.trim()}, \${String(notes || "").trim()}
+      ) AS result
+    \`;
+    return NextResponse.json({ success: true, order: rows[0].result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("INSUFFICIENT_STOCK")) return NextResponse.json({ error: "Stock insuffisant pour cette couleur et cette taille." }, { status: 409 });
+    if (message.includes("PRODUCT_UNAVAILABLE")) return NextResponse.json({ error: "Produit indisponible." }, { status: 404 });
+    if (message.includes("INVALID_QUANTITY")) return NextResponse.json({ error: "Quantité invalide." }, { status: 400 });
     return NextResponse.json({ error: "Impossible d'enregistrer la commande. Réessayez." }, { status: 500 });
   }
 }
