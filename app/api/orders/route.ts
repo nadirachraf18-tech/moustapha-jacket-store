@@ -1,21 +1,12 @@
 import { neon } from "@neondatabase/serverless";
 import { NextRequest, NextResponse } from "next/server";
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { variantId, quantity, customerName, phone, city, address, notes } = body;
-    if (!variantId || !Number.isInteger(quantity) || quantity < 1 || quantity > 10 ||
-        !customerName?.trim() || !phone?.trim() || !city?.trim() || !address?.trim()) {
-      return NextResponse.json({ error: "Informations de commande invalides" }, { status: 400 });
-    }
+    if (!variantId || !Number.isInteger(quantity) || quantity < 1 || quantity > 10 || !customerName?.trim() || !phone?.trim() || !city?.trim() || !address?.trim()) return NextResponse.json({ error: "Informations de commande invalides" }, { status: 400 });
     const sql = neon(process.env.DATABASE_URL!);
-    const rows = await sql\`
-      SELECT public.place_store_order(
-        \${variantId}::uuid, \${quantity}::integer, \${customerName.trim()}, \${phone.trim()},
-        \${city.trim()}, \${address.trim()}, \${String(notes || "").trim()}
-      ) AS result
-    \`;
+    const rows = await sql`SELECT public.place_store_order(${variantId}::uuid, ${quantity}::integer, ${customerName.trim()}, ${phone.trim()}, ${city.trim()}, ${address.trim()}, ${String(notes || "").trim()}) AS result`;
     return NextResponse.json({ success: true, order: rows[0].result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
