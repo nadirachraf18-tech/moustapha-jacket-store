@@ -31,6 +31,25 @@ export default function AdminPage() {
     try { const r=await fetch("/api/admin",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"stock",variantId:v.id,stock})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Erreur de sauvegarde"); await load(); }
     catch(e){setError(e instanceof Error?e.message:"Erreur");} finally{setSaving("");}
   }
+  async function uploadColorPhoto(productName:string,colorName:string,file?:File){
+    if(!file)return;
+    const key=productName+"|||"+colorName;setSaving(key);setError("");
+    try{
+      if(!file.type.startsWith("image/"))throw new Error("Veuillez choisir une image.");
+      const bitmap=await createImageBitmap(file);
+      const scale=Math.min(1,1400/Math.max(bitmap.width,bitmap.height));
+      const canvas=document.createElement("canvas");canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);
+      const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Compression image impossible.");
+      ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();
+      const imageUrl=canvas.toDataURL("image/webp",0.82);
+      const match=variants.find(v=>v.product_name===productName&&v.color_name===colorName);
+      if(!match)throw new Error("Variante introuvable.");
+      const response=await fetch("/api/admin/color-images",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({productId:(match as any).product_id,colorName,imageUrl})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error||"Enregistrement impossible.");
+      await load();
+    }catch(e){setError(e instanceof Error?e.message:"Erreur d'envoi");}
+    finally{setSaving("");}
+  }
   async function updateStatus(o:Order,status:string){
     setSaving(o.id); setError("");
     try { const r=await fetch("/api/admin",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"status",orderId:o.id,status})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||"Erreur de mise à jour"); await load(); }
@@ -71,7 +90,7 @@ export default function AdminPage() {
       <section className="admin-panel panel-v2" id="products">
         <div className="panel-head"><div><span className="admin-kicker">GESTION DES QUANTITÉS</span><h2>Stock par couleur et taille</h2><p>Modifiez les quantités disponibles. Le stock de la variante commandée diminue automatiquement à chaque commande.</p></div><span className="inventory-total">{totalStock} unités</span></div>
         {lowStock>0&&<div className="stock-warning">⚠ {lowStock} variante(s) ont un stock faible (3 unités ou moins) · {outOfStock} variante(s) épuisée(s).</div>}
-        {loading?<p>Chargement du stock…</p>:<div className="stock-groups">{grouped.map(([groupKey,items])=>{const [productName,color]=groupKey.split("|||");return <article className="stock-color-card" key={groupKey}><div className="stock-color-head">{items[0]?.color_image_url&&<img className="stock-color-thumb" src={items[0].color_image_url} alt={color}/>}<span className="color-dot" style={{background:colors[color]||"#aaa"}}/><strong>{productName} — {color}</strong><small>{items.reduce((n,v)=>n+v.stock_quantity,0)} en stock</small></div><div className="size-stock-grid">{items.sort((a,b)=>a.size.localeCompare(b.size)).map(v=><StockRow key={v.id} variant={v} busy={saving===v.id} onSave={n=>updateStock(v,n)}/>)}</div></article>})}</div>}
+        {loading?<p>Chargement du stock…</p>:<div className="stock-groups">{grouped.map(([groupKey,items])=>{const [productName,color]=groupKey.split("|||");return <article className="stock-color-card" key={groupKey}><div className="stock-color-head"><label title={items[0]?.color_image_url?"Changer la photo":"Ajouter la photo du "+color} style={{position:"relative",display:"grid",placeItems:"center",width:48,height:54,flex:"0 0 48px",borderRadius:8,overflow:"hidden",background:"#f7f2f6",border:"1px solid #eadfe8",cursor:"pointer"}}>{items[0]?.color_image_url?<img className="stock-color-thumb" style={{width:"100%",height:"100%",objectFit:"cover"}} src={items[0].color_image_url} alt={color}/>:<span style={{fontSize:22,color:"#a34f80"}}>＋</span>}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!saving} style={{display:"none"}} onChange={e=>{uploadColorPhoto(productName,color,e.target.files?.[0]);e.currentTarget.value="";}}/></label><strong>{productName} — {color}</strong><small>{items.reduce((n,v)=>n+v.stock_quantity,0)} en stock</small></div><div className="size-stock-grid">{items.sort((a,b)=>a.size.localeCompare(b.size)).map(v=><StockRow key={v.id} variant={v} busy={saving===v.id} onSave={n=>updateStock(v,n)}/>)}</div></article>})}</div>}
       </section>
       <ProductImagesManager />
       <section className="admin-panel panel-v2" id="orders">
