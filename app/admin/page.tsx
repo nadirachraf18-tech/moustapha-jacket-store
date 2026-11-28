@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 
 type Variant = { id:string; product_name:string; color_name:string; color_image_url?:string|null; size:string; stock_quantity:number };
-type Order = { id:string; order_number:number; customer_name:string; phone:string; city:string; address:string; status:string; total:number; created_at:string; color_name:string; size:string; quantity:number };
+type Order = { id:string; order_number:number; customer_name:string; phone:string; city:string; address:string; notes?:string; status:string; total:number; subtotal?:number; delivery_fee?:number; created_at:string; product_name?:string; color_name:string; size:string; quantity:number };
 const statuses = ["pending","confirmed","preparing","shipped","delivered","cancelled"];
 const labels:Record<string,string> = {pending:"En attente",confirmed:"Confirmée",preparing:"En préparation",shipped:"Expédiée",delivered:"Livrée",cancelled:"Annulée"};
 const colors:Record<string,string> = {"Camel":"#b98559","Bleu marine":"#17263e","Kaki":"#68734b","Chocolat":"#503528","Noir":"#191919"};
@@ -49,6 +49,38 @@ export default function AdminPage() {
       await load();
     }catch(e){setError(e instanceof Error?e.message:"Erreur d'envoi");}
     finally{setSaving("");}
+  }
+  function sendClientConfirmation(o:Order){
+    const cleanPhone=String(o.phone||"").replace(/\\D/g,"");
+    const clientPhone=cleanPhone.startsWith("0")?"212"+cleanPhone.slice(1):cleanPhone.startsWith("212")?cleanPhone:cleanPhone;
+    if(!clientPhone){setError("Numéro de téléphone client invalide.");return;}
+    const subtotal=Number(o.subtotal??(Number(o.total)-Number(o.delivery_fee||0)));
+    const delivery=Number(o.delivery_fee??(Number(o.total)-subtotal));
+    const message=[
+      "🌸 *MOUSTAPHA SHOP — CONFIRMATION DE COMMANDE*",
+      "",
+      "Bonjour "+o.customer_name+",",
+      "Nous vous confirmons la bonne réception de votre commande. ❤️",
+      "",
+      "📦 *DÉTAILS DE VOTRE COMMANDE*",
+      "N° de commande : #"+o.order_number,
+      "Article : "+(o.product_name||"Veste femme simili cuir"),
+      "Couleur : "+(o.color_name||"—"),
+      "Taille : "+(o.size||"—"),
+      "Quantité : "+Number(o.quantity||1),
+      "",
+      "💰 *RÉCAPITULATIF*",
+      "Sous-total : "+subtotal.toFixed(0)+" DH",
+      "Livraison : "+delivery.toFixed(0)+" DH",
+      "*Total à payer à la livraison : "+Number(o.total).toFixed(0)+" DH*",
+      "",
+      "🚚 Ville : "+o.city,
+      "📍 Adresse : "+o.address,
+      "",
+      "Merci pour votre confiance ! Nous vous contacterons pour le suivi de votre livraison.",
+      "*Moustapha Shop*"
+    ].join("\\n");
+    window.open("https://wa.me/"+clientPhone+"?text="+encodeURIComponent(message),"_blank","noopener,noreferrer");
   }
   async function updateStatus(o:Order,status:string){
     setSaving(o.id); setError("");
@@ -96,7 +128,7 @@ export default function AdminPage() {
       <section className="admin-panel panel-v2" id="orders">
         <div className="panel-head"><div><span className="admin-kicker">SUIVI COMMERCIAL</span><h2>Dernières commandes</h2><p>Consultez les commandes et mettez à jour leur statut.</p></div><span className="inventory-total">{orders.length} commande(s)</span></div>
         <div className="order-toolbar"><input className="order-search" placeholder="Rechercher nom, téléphone, ville, N°..." value={search} onChange={e=>setSearch(e.target.value)}/><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Tous les statuts</option>{statuses.map(s=><option key={s} value={s}>{labels[s]}</option>)}</select></div>
-        {loading?<p>Chargement des commandes…</p>:filteredOrders.length===0?<div className="empty-orders"><span>▤</span><strong>Aucune commande à afficher</strong><small>Les nouvelles commandes apparaîtront ici.</small></div>:<div className="orders-list">{filteredOrders.map(o=><article className="order-card order-card-v2" key={o.id}><div className="order-main-info"><b>Commande #{o.order_number}</b><strong>{o.customer_name}</strong><p>{o.phone} · {o.city}</p><small>{o.color_name} / {o.size} · Quantité {o.quantity}</small></div><div className="order-date">{new Date(o.created_at).toLocaleDateString("fr-FR")}</div><div className="order-actions"><strong>{Number(o.total).toFixed(0)} DH</strong><select className={`status-select status-${o.status}`} value={o.status} disabled={saving===o.id} onChange={e=>updateStatus(o,e.target.value)}>{statuses.map(s=><option key={s} value={s}>{labels[s]}</option>)}</select></div></article>)}</div>}
+        {loading?<p>Chargement des commandes…</p>:filteredOrders.length===0?<div className="empty-orders"><span>▤</span><strong>Aucune commande à afficher</strong><small>Les nouvelles commandes apparaîtront ici.</small></div>:<div className="orders-list">{filteredOrders.map(o=><article className="order-card order-card-v2" key={o.id}><div className="order-main-info"><b>Commande #{o.order_number}</b><strong>{o.customer_name}</strong><p>{o.phone} · {o.city}</p><small>{o.color_name} / {o.size} · Quantité {o.quantity}</small></div><div className="order-date">{new Date(o.created_at).toLocaleDateString("fr-FR")}</div><div className="order-actions"><strong>{Number(o.total).toFixed(0)} DH</strong><select className={`status-select status-${o.status}`} value={o.status} disabled={saving===o.id} onChange={e=>updateStatus(o,e.target.value)}>{statuses.map(s=><option key={s} value={s}>{labels[s]}</option>)}</select><button type="button" className="whatsapp-confirm-button" onClick={()=>sendClientConfirmation(o)} title="Ouvrir WhatsApp avec le message de confirmation prérempli">💬 Envoyer confirmation</button></div></article>)}</div>}
       </section>
       <footer className="admin-footer">Moustapha Shop · Espace d'administration <span>Version 2.0</span></footer>
     </section>
