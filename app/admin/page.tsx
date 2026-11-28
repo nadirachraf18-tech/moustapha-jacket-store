@@ -57,29 +57,29 @@ export default function AdminPage() {
     const subtotal=Number(o.subtotal??(Number(o.total)-Number(o.delivery_fee||0)));
     const delivery=Number(o.delivery_fee??(Number(o.total)-subtotal));
     const message=[
-      "🌸 *MOUSTAPHA SHOP — CONFIRMATION DE COMMANDE*",
+      "*MOUSTAPHA SHOP - CONFIRMATION DE COMMANDE*",
       "",
       "Bonjour "+o.customer_name+",",
       "Nous vous confirmons la bonne réception de votre commande. ❤️",
       "",
-      "📦 *DÉTAILS DE VOTRE COMMANDE*",
+      "*DETAILS DE VOTRE COMMANDE*",
       "N° de commande : #"+o.order_number,
       "Article : "+(o.product_name||"Veste femme simili cuir"),
       "Couleur : "+(o.color_name||"—"),
       "Taille : "+(o.size||"—"),
       "Quantité : "+Number(o.quantity||1),
       "",
-      "💰 *RÉCAPITULATIF*",
+      "*RECAPITULATIF*",
       "Sous-total : "+subtotal.toFixed(0)+" DH",
       "Livraison : "+delivery.toFixed(0)+" DH",
       "*Total à payer à la livraison : "+Number(o.total).toFixed(0)+" DH*",
       "",
-      "🚚 Ville : "+o.city,
-      "📍 Adresse : "+o.address,
+      "Ville : "+o.city,
+      "Adresse : "+o.address,
       "",
-      "Merci pour votre confiance ! Nous vous contacterons pour le suivi de votre livraison.",
+      "Merci pour votre confiance. Nous vous contacterons pour le suivi de votre livraison.",
       "*Moustapha Shop*"
-    ].join("\\n");
+    ].join("\n");
     window.open("https://wa.me/"+clientPhone+"?text="+encodeURIComponent(message),"_blank","noopener,noreferrer");
   }
   async function updateStatus(o:Order,status:string){
