@@ -30,32 +30,32 @@ export default function Home(){
    const subtotal=quantity*150;
    const delivery=Math.max(0,Number(d.order.total)-subtotal);
    const msg=[
-    "🛍️ *NOUVELLE COMMANDE — MOUSTAPHA SHOP*",
+    "*NOUVELLE COMMANDE - MOUSTAPHA SHOP*",
     "",
     "Bonjour, je souhaite confirmer ma commande.",
     "━━━━━━━━━━━━━━━━━━",
-    "📦 *DÉTAILS DE LA COMMANDE*",
+    "*DETAILS DE LA COMMANDE*",
     "Référence : #"+d.order.order_number,
     "Produit : Veste femme simili cuir",
     "Couleur : "+color,
     "Taille : "+size,
     "Quantité : "+quantity,
     "",
-    "💰 *RÉCAPITULATIF*",
+    "*RECAPITULATIF*",
     "Sous-total : "+subtotal+" DH",
     "Livraison : "+delivery+" DH",
     "*TOTAL À PAYER : "+d.order.total+" DH*",
     "",
-    "👤 *INFORMATIONS CLIENT*",
+    "*INFORMATIONS CLIENT*",
     "Nom : "+form.customerName.trim(),
     "Téléphone : "+form.phone.trim(),
     "Ville : "+form.city.trim(),
     "Adresse : "+form.address.trim(),
     ...(form.notes.trim()?["Remarque : "+form.notes.trim()]:[]),
     "",
-    "Merci de confirmer la disponibilité et le délai de livraison. ❤️",
+    "Merci de confirmer la disponibilité et le délai de livraison.",
     "Moustapha Shop"
-   ].join("\\n");
+   ].join("\n");
    const whatsappUrl=`https://wa.me/${phone.replace(/\\D/g,"")}?text=${encodeURIComponent(msg)}`;
    window.open(whatsappUrl,"_blank","noopener,noreferrer");
    setNotice("✅ Votre commande #"+d.order.order_number+" a bien été enregistrée. Le récapitulatif détaillé s’ouvre dans WhatsApp pour finaliser la confirmation.");
